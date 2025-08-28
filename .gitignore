@@ -1,0 +1,12 @@
+build/**/**
+bios/**
+.vscode/**
+resources/**/**
+toolchain/**/**
+tools/**/**
+.prettierrc
+bx_enh_dbg.ini
+config.bxrc
+debug.bat
+*.img
+run.bat
