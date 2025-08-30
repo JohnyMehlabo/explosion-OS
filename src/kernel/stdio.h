@@ -6,3 +6,5 @@ void putc(char c);
 void puts(const char* str);
 void putd(uint32_t number);
 void putd_h(uint32_t number);
+
+void printf(const uint8_t* format, ...);

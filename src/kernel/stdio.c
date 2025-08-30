@@ -1,5 +1,6 @@
 #include "stdio.h"
 #include "drivers/display.h"
+#include "stdarg.h"
 
 #define SCREEN_WIDTH 80
 #define SCREEN_HEIGHT 25
@@ -36,7 +37,6 @@ void putc(char c) {
             screenX++;
             break;
     }
-    
 }
 
 void puts(const char* str) {
@@ -73,4 +73,59 @@ void putd_h(uint32_t number) {
     while (--pos >= 0) {
         putc(buffer[pos]);
     }
+}
+
+enum PrintfState {
+    DEFAULT,
+    FORMAT_SPECIFIER,
+};
+
+void printf(const uint8_t* format, ...) {
+    va_list argptr;
+    va_start(argptr, format);
+    
+    enum PrintfState state = DEFAULT;
+
+    while (*format) {
+        switch (state)
+        {
+        case DEFAULT:
+            switch (*format) {
+                case '%':
+                    state = FORMAT_SPECIFIER;
+                    break;
+                default:
+                    putc(*format);
+                    break;
+            }
+            break;
+        case FORMAT_SPECIFIER:
+            switch (*format) {
+                case 'd':
+                    unsigned int d = va_arg(argptr, unsigned int);
+                    putd(d);
+                    break;
+                case 'x':
+                    unsigned int x = va_arg(argptr, unsigned int);
+                    putd_h(x);
+                    break;
+                case 's':
+                    const char* s = va_arg(argptr, const char*);
+                    puts(s);
+                    break;
+                case 'c':
+                    unsigned int c = va_arg(argptr, unsigned int);
+                    putc(c);
+                    break;
+                case '%':
+                    putc('%');
+                    break;
+            }
+            state = DEFAULT;
+            break;
+            
+        }
+        format++;
+    }
+    va_end(argptr);
 }

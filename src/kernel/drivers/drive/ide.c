@@ -360,16 +360,7 @@ void IDE_IdentifyDrives() {
 
     for (int i = 0; i < 4; i++) {
         if (devices[i].reserved) {
-            puts("Found drive:\n");
-            puts("ID: ");
-            putd(i);
-            putc('\n');
-            puts("Model: ");
-            puts(devices[i].model);
-            putc('\n');
-            puts("Size: ");
-            putd(devices[i].size);
-            putc('\n');
+            printf("Found drive:\n  ID: %d\n  Model: %s\n  Size: %d\n", i, devices[i].model, devices[i].size);
         }
     }
 }

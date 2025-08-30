@@ -18,10 +18,7 @@ typedef struct {
 
 
 void logMAC(const MACAddress* address) {
-    for (int i = 0; i < 6; i++) {
-        putd_h((*address)[i]);
-        if (i != 5) putc(':');
-    }
+    printf("%x:%x:%x:%x:%x:%x", (*address)[0], (*address)[1], (*address)[2], (*address)[3], (*address)[4], (*address)[5]);
 }
 
 #define HARDWARE_TYPE_ETHERNET 1

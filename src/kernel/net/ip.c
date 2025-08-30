@@ -18,13 +18,7 @@ typedef struct {
 // TODO: Header might contain more data in IP option. Dont care for now
 
 void logIP(IPv4Address ip) {
-    putd(ip & 0xff);
-    putc('.');
-    putd((ip & 0xff00) >> 8);
-    putc('.');
-    putd((ip & 0xff0000) >> 16);
-    putc('.');
-    putd((ip & 0xff000000) >> 24);
+    printf("%d.%d.%d.%d", ip & 0xff, (ip & 0xff00) >> 8, (ip & 0xff0000) >> 16, (ip & 0xff000000) >> 24);
 }
 
 void IP_HandlePacket(NetPacket packet, MACAddress srcMac) {

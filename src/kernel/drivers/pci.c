@@ -103,26 +103,9 @@ void PCI_EnumerateDevices() {
                 uint16_t vendorId = PCI_ConfigReadWord(b, d, f, 0);
                 uint16_t deviceId = PCI_ConfigReadWord(b, d, f, 2);
                 if (vendorId != 0xffff) {
-                    putd(b);
-                    putc(',');
-                    putd(d);
-                    putc(',');
-                    putd(f);
-                    putc(' ');
-
-                    putd(vendorId);
-                    putc(':');
-                    putd(deviceId);
-                    putc(' ');
-
                     uint16_t classInfo = PCI_ConfigReadWord(b, d, f, 0xa);
-                    puts("Class:");
-                    putd(classInfo >> 8);
-                    putc(' ');
 
-                    puts("Subclass:");
-                    putd(classInfo & 0xff);
-                    putc('\n');
+                    printf("%x,%x,%x %x:%x Class: %d Subclass: %d\n", b, d, f, vendorId, deviceId, classInfo >> 8, classInfo & 0xff);
                 }
             }
         }

@@ -79,11 +79,10 @@ void RTL8139_Init() {
 
     // Retrieve MAC address
     for (int i = 0; i < 6; i++) {
-        uint8_t macValue = i686_inb(ioaddr+i);
-        putd(macValue);
-        putc(':');
-        macAddress[i] = macValue;
+        macAddress[i] = i686_inb(ioaddr+i);
     }
+
+    printf("%x:%x:%x:%x:%x:%x\n", macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5]);
 
     Ethernet_SetMACAddress(macAddress);
 

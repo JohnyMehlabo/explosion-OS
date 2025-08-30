@@ -43,7 +43,7 @@ void kstart(uint16_t bootDrive) {
     memset(&__bss_start, 0, (&__bss_end) - (&__bss_start));
 
     clrscr();
-
+    
     i686_GDT_Initialize();       
     i686_IDT_Initialize();
     
