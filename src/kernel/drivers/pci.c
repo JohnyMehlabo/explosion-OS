@@ -72,6 +72,29 @@ bool PCI_FindDevice(uint16_t vendorId, uint16_t deviceId, uint8_t* bus, uint8_t*
     return false; // No matching devices
 }
 
+bool PCI_FindDeviceByClass(uint8_t class, uint8_t subclass, uint8_t* bus, uint8_t* device, uint8_t* function) {
+    uint16_t targetClassInfo = ((uint16_t)class) << 8 | subclass;
+    // Loop trough all buses, devices and functions to find a match
+    for (uint16_t b = 0; b < 256; b++) {
+        for (uint8_t d = 0; d < 32; d++) {
+            for (uint8_t f = 0; f < 8; f++) {
+                uint16_t currVendorId = PCI_ConfigReadWord(b, d, f, 0);
+                uint16_t currDeviceId = PCI_ConfigReadWord(b, d, f, 2);
+                uint16_t classInfo = PCI_ConfigReadWord(b, d, f, 0xa);
+
+                // If we find a match return through the pointers the position of the device
+                if (currVendorId != 0xffff && currDeviceId != 0xffff && classInfo == targetClassInfo) {
+                    *bus = b;
+                    *device = d;
+                    *function = f;
+                    return true; // A match was found 
+                }
+            }
+        }
+    }
+    return false; // No matching devices
+}
+
 void PCI_EnumerateDevices() {
     // Loop trough all buses, devices and functions to find a match
     for (uint16_t b = 0; b < 256; b++) {
@@ -90,6 +113,15 @@ void PCI_EnumerateDevices() {
                     putd(vendorId);
                     putc(':');
                     putd(deviceId);
+                    putc(' ');
+
+                    uint16_t classInfo = PCI_ConfigReadWord(b, d, f, 0xa);
+                    puts("Class:");
+                    putd(classInfo >> 8);
+                    putc(' ');
+
+                    puts("Subclass:");
+                    putd(classInfo & 0xff);
                     putc('\n');
                 }
             }

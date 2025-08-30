@@ -54,3 +54,33 @@ i686_outl:
     mov eax, [esp+8]
     out dx, eax
     ret
+
+global i686_insw
+i686_insw:
+    push edi
+    mov dx, [esp+8]
+    mov edi, [esp+12]
+    mov ecx, [esp+16]
+    rep insw
+    pop edi
+    ret
+
+global i686_outsw
+i686_outsw:
+    push esi
+    mov dx, [esp+8]
+    mov esi, [esp+12]
+    mov ecx, [esp+16]
+    rep outsw
+    pop esi
+    ret
+
+global i686_insl
+i686_insl:
+    push edi
+    mov dx, [esp+8]
+    mov edi, [esp+12]
+    mov ecx, [esp+16]
+    rep insd
+    pop edi
+    ret

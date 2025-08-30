@@ -27,6 +27,11 @@ void i686_ISR_CommonHandler(StackData* data) {
         puts("Unhandled exception: ");
         puts(exceptionMessages[data->interruptVector]);
         putc('\n');
+
+        if (data->interruptVector == 14) {
+            putd(data->eip);
+        }
+
         i686_Halt();
     }
 

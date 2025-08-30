@@ -109,10 +109,6 @@ void RTL8139_Init() {
 
     uint8_t interruptLine = PCI_ConfigReadWord(bus, device, function, 0x3c) & 0xff;
 
-    puts("Interrupt line: ");
-    putd(interruptLine);
-    putc('\n');
-
     i686_IRQ_SetHandler(interruptLine, RTL8139_IRQHandler);    
 }
 

@@ -10,6 +10,7 @@
 #include "drivers/display.h"
 #include "drivers/keyboard.h"
 #include "drivers/pci.h"
+#include "drivers/drive/ide.h"
 #include "drivers/net/rtl8139.h"
 #include "net/arp.h"
 #include "shell.h"
@@ -40,8 +41,7 @@ void enableFPU() {
 
 void kstart(uint16_t bootDrive) {
     memset(&__bss_start, 0, (&__bss_end) - (&__bss_start));
-    putd(bootDrive);
-        
+
     clrscr();
 
     i686_GDT_Initialize();       
@@ -59,6 +59,7 @@ void kstart(uint16_t bootDrive) {
     Display_Initialize();
 
     PCI_EnumerateDevices();
+    IDE_Init();
     RTL8139_Init();
 
     ARP_SendRequest(0x0101a8c0);

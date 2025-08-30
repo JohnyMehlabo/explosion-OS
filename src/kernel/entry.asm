@@ -20,6 +20,7 @@ section .entry
 ; EDI Current PTE offset
 ; ESI Current memory offset
 entry:
+    mov eax, [ebp-4]
     mov edi, page_tables - 0xC0000000
     xor esi, esi
 .loop:
@@ -77,6 +78,7 @@ higher_half:
     
    mov DWORD [page_directory - 0xC0000000 + 0], 0
 
+    mov [ebp-4], eax
     call kstart
 
     cli
