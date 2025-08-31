@@ -1,4 +1,5 @@
 #include "stdint.h"
+#include "boot_info.h"
 #include "memory.h"
 #include "stdio.h"
 #include "arch/i686/gdt.h"
@@ -39,11 +40,12 @@ void enableFPU() {
     __asm__ volatile ("fninit");
 }
 
-void kstart(uint16_t bootDrive) {
+void kstart(BootInfo* bootInfo) {
     memset(&__bss_start, 0, (&__bss_end) - (&__bss_start));
-
     clrscr();
     
+    bootInfo->smap = (SMAPEntry*)((uint8_t*)bootInfo->smap + 0xc0000000); // Offset boot info pointers by virtual address
+
     i686_GDT_Initialize();       
     i686_IDT_Initialize();
     
@@ -63,7 +65,12 @@ void kstart(uint16_t bootDrive) {
     RTL8139_Init();
 
     ARP_SendRequest(0x0101a8c0);
-    
+
+    printf("Boot drive: 0x%x\n", bootInfo->bootDrive); 
+    for (int i = 0; i < bootInfo->smapEntryCount; i++) {
+        printf("Base:0x%x%x Size:0x%x%x Type:%d\n", bootInfo->smap[i].baseHi, bootInfo->smap[i].baseLo, bootInfo->smap[i].lengthHi, bootInfo->smap[i].lengthLo, bootInfo->smap[i].type);
+    }
+
     shell();
 
 end:

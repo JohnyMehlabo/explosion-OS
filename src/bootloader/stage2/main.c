@@ -3,6 +3,7 @@
 #include "disk.h"
 #include "fat.h"
 #include "memdefs.h"
+#include "mem_detection.h"
 
 void printOSInformation(DISK* disk) {
 
@@ -25,11 +26,26 @@ void printOSInformation(DISK* disk) {
     // puts("Hello World from C!\nThis is Explosion OS, a simple operating system made for learning\n\nStages completed:\n - Bootloader stage 1: Load stage 2 from FAT into memory\n - Bootloader stage 2: Setup the CPU into protected mode and load kernel from C\nThis is stage 2 of the bootloader\n\n");
 }
 
-typedef void (*KernelStart)(uint16_t bootDrive);
+
+struct BootInfo {
+    uint16_t bootDrive;
+    uint32_t smapEntryCount;
+    SMAPEntry* smap;    
+};
+
+typedef void (*KernelStart)(struct BootInfo* bootInfo);
+
+struct BootInfo* bootInfo = (struct BootInfo*)MEMORY_BOOT_INFO_ADDR;
 
 void __attribute__((cdecl)) cstart_(uint16_t bootDrive) {
     clrscr();
     
+    bootInfo->bootDrive = bootDrive;
+
+    uint8_t* smapAddr = (uint8_t*)bootInfo + sizeof(struct BootInfo);
+    uint32_t smapCount = MemDect_DetectMemory(smapAddr);
+    bootInfo->smapEntryCount = smapCount;
+    bootInfo->smap = (SMAPEntry*)smapAddr;
     
     DISK disk;
     DISK_InitializeDisk(bootDrive, &disk);
@@ -40,13 +56,12 @@ void __attribute__((cdecl)) cstart_(uint16_t bootDrive) {
     puts("Cylinders: "); putd(disk.cylinders); putc('\n');
     puts("Heads: "); putd(disk.heads); putc('\n');
     puts("Sectors: "); putd(disk.sectors); putc('\n');
-
     
     FAT_File* kernelFile = FAT_Open(&disk, "kernel.bin");
     FAT_Read(&disk, kernelFile, kernelFile->size, (void*)MEMORY_KERNEL_ADDR);
 
     KernelStart kernelStart = (void*)MEMORY_KERNEL_ADDR;
-    kernelStart(bootDrive);
+    kernelStart(bootInfo);
 
 end:
     for(;;);    

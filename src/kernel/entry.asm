@@ -20,7 +20,7 @@ section .entry
 ; EDI Current PTE offset
 ; ESI Current memory offset
 entry:
-    mov eax, [ebp-4]
+    mov eax, [esp+4]
     mov edi, page_tables - 0xC0000000
     xor esi, esi
 .loop:
@@ -57,6 +57,10 @@ entry:
     jmp .vga_map_loop
 .end_vga_map_loop:
 
+    mov edx, eax ; Copy boot info addr into edx for setting corresponding flags
+    or edx, 3
+    mov DWORD [page_tables - 0xC0000000 + 64 * 4], edx
+
     mov DWORD [page_directory - 0xC0000000 + 0], page_tables - 0xC0000000 + 3
     mov DWORD [page_directory - 0xC0000000 + 768 * 4], page_tables - 0xC0000000 + 3
 
@@ -78,7 +82,8 @@ higher_half:
     
    mov DWORD [page_directory - 0xC0000000 + 0], 0
 
-    mov [ebp-4], eax
+    add eax, 0xC0000000 ; Add the virtual offset to the boot info struct
+    push eax
     call kstart
 
     cli
