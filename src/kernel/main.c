@@ -2,11 +2,13 @@
 #include "boot_info.h"
 #include "memory.h"
 #include "stdio.h"
+#include "arch/i686/io.h"
 #include "arch/i686/gdt.h"
 #include "arch/i686/idt.h"
 #include "arch/i686/isr.h"
 #include "arch/i686/irq.h"
-#include "arch/i686/io.h"
+#include "memory/bootstrap_alloc.h"
+#include "memory/pmm.h"
 #include "drivers/ps2.h"
 #include "drivers/display.h"
 #include "drivers/keyboard.h"
@@ -54,6 +56,9 @@ void kstart(BootInfo* bootInfo) {
     i686_IRQ_Initialize();
     i686_IRQ_SetMask(0);   
     i686_EnableInterrupts();
+
+    BootAlloc_Init();
+    PMM_Init(bootInfo->smap, bootInfo->smapEntryCount);
 
     enableFPU();
 

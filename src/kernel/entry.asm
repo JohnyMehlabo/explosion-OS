@@ -16,6 +16,8 @@ page_directory:
 page_tables:
     resb 0x10000
 
+BOOTSTRAP_MEM equ 0x100000
+
 section .entry
 ; EDI Current PTE offset
 ; ESI Current memory offset
@@ -26,7 +28,7 @@ entry:
 .loop:
     cmp esi, __kernel_start
     jl .before_start
-    cmp esi, __end - 0xC0000000
+    cmp esi, __end + BOOTSTRAP_MEM - 0xC0000000
     jge .reached_end
 
     mov edx, esi
@@ -39,7 +41,25 @@ entry:
     jmp .loop
 
 .reached_end:
-    
+    sub edi, page_tables - 0xC0000000 ; Mov to edi used pagetable size
+    mov ebx, page_tables - 0xC0000000
+    xor esi, esi
+
+.directory_loop:
+    mov ecx, ebx
+    or ecx, 3
+
+    mov DWORD [page_directory - 0xC0000000 + esi], ecx
+    mov DWORD [page_directory - 0xC0000000 + 768 * 4 + esi], ecx
+
+    inc esi
+    add ebx, 0x1000
+
+    cmp ebx, edi
+    jge .finished_directory
+    jmp .directory_loop
+
+.finished_directory:
     mov edi, page_tables - 0xC0000000 + 160 * 4
     mov esi, 0xa0000
 
@@ -60,9 +80,6 @@ entry:
     mov edx, eax ; Copy boot info addr into edx for setting corresponding flags
     or edx, 3
     mov DWORD [page_tables - 0xC0000000 + 64 * 4], edx
-
-    mov DWORD [page_directory - 0xC0000000 + 0], page_tables - 0xC0000000 + 3
-    mov DWORD [page_directory - 0xC0000000 + 768 * 4], page_tables - 0xC0000000 + 3
 
     mov ecx, page_directory - 0xC0000000
     mov cr3, ecx

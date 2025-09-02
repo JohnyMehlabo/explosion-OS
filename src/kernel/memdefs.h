@@ -1,0 +1,4 @@
+#pragma once
+
+#define KERNEL_VIRTUAL_ADDR 0xc0000000
+#define BOOTSTRAP_MEM_SIZE 0x100000
