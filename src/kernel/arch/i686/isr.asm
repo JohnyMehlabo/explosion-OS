@@ -22,9 +22,15 @@ ISRCommon:
     [bits 32]
     pushad
 
+    mov eax, cr2
+    push eax
+
     push esp
     call i686_ISR_CommonHandler
     add esp, 4
+
+    pop eax
+    mov cr2, eax
 
     popad
 

@@ -2,6 +2,7 @@
 #include "stdint.h"
 
 typedef struct {
+    uint32_t cr2;
     uint32_t edi, esi, ebp, useless, ebx, edx, ecx, eax;
     uint32_t interruptVector;
     uint32_t errorCode;
@@ -12,3 +13,4 @@ typedef void (*ISRHandler)(StackData* data);
 
 void i686_ISR_Initialize();
 void i686_ISR_SetHandler(uint8_t vector, ISRHandler handler);
+void i686_ISR_SetExceptionHandler(uint8_t vector, ISRHandler handler);

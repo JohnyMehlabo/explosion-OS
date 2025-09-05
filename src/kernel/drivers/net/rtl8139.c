@@ -7,6 +7,7 @@
 #include "arch/i686/irq.h"
 #include "net/ethernet.h"
 #include "net/common.h"
+#include "memory/vmm.h"
 
 #define VENDOR_ID 0x10ec 
 #define DEVICE_ID 0x8139 // NOTE: This device ID only represents qemuy, kvm and virtual box emulated NICs
@@ -14,11 +15,16 @@
 #define ISR_TOK 0x4
 #define ISR_ROK 0x1
 
+#define RX_BUFFER_SIZE 8208
+
 uint16_t ioaddr;
 MACAddress macAddress;
 
 uint32_t curOffset = 0;
-__attribute__((aligned(4096))) uint8_t rxBuffer[8192 + 16];
+uint8_t* rxBuffer;
+
+uint8_t (*transmitBuffersPhysical)[MAX_ETH_SIZE];
+uint8_t (*transmitBuffers)[MAX_ETH_SIZE];
 
 void RTL8139_IRQHandler() {
     uint16_t status = i686_inw(ioaddr + 0x3e);
@@ -43,8 +49,8 @@ void RTL8139_IRQHandler() {
         uint32_t pkgStart = curOffset + 4;
         uint8_t* pkgStartPtr = rxBuffer + pkgStart;
 
-        if (pkgStart + length > sizeof(rxBuffer)) { // Wraps around end
-            uint32_t lengthBeforeWrap = curOffset + length - sizeof(rxBuffer);
+        if (pkgStart + length > RX_BUFFER_SIZE) { // Wraps around end
+            uint32_t lengthBeforeWrap = curOffset + length - RX_BUFFER_SIZE;
             memcpy(packet, pkgStartPtr, lengthBeforeWrap ); // Copy part before wrap
             memcpy(packet + lengthBeforeWrap, rxBuffer, length-lengthBeforeWrap); // Copy part that wrapped from the beginning
         } else {
@@ -52,7 +58,7 @@ void RTL8139_IRQHandler() {
         }
 
         curOffset = (curOffset + length + 4 + 3) & ~3;
-        curOffset %= sizeof(rxBuffer);
+        curOffset %= RX_BUFFER_SIZE;
         i686_outw(ioaddr + 0x38, curOffset - 16);
 
         Ethernet_HandlePacket((NetPacket){ .data=packet, .payload=packet, .length=length });
@@ -64,6 +70,12 @@ void RTL8139_Init() {
     uint8_t device;
     uint8_t function;
     
+    // Allocate space for buffers
+    rxBuffer = VMM_AllocatePages(4, true);
+    // Transmit buffers start after rxBuffer
+    transmitBuffers = (uint8_t (*)[1518])(rxBuffer + RX_BUFFER_SIZE);
+    transmitBuffersPhysical = (uint8_t (*)[1518])((uint8_t*)VMM_GetPhysicalMapping(rxBuffer) + RX_BUFFER_SIZE);
+
     if (!PCI_FindDevice(VENDOR_ID, DEVICE_ID, &bus, &device, &function)) {
         puts("Error while initializing RTL8139. Device not found\n");
         return;
@@ -94,7 +106,7 @@ void RTL8139_Init() {
     while ((i686_inb(ioaddr + 0x37) & 0x10) != 0) { }
 
     // Set RX Buffer
-    i686_outl(ioaddr + 0x30, (uintptr_t)rxBuffer  - 0xc0000000);
+    i686_outl(ioaddr + 0x30, (uintptr_t)VMM_GetPhysicalMapping(rxBuffer));
 
     // Enable interrupts for TOK and ROK
     i686_outw(ioaddr + 0x3C, 0x5); 
@@ -117,7 +129,6 @@ void RTL8139_Init() {
 #define TRANSMIT_START_REG_OFFSET 0x20
 
 uint8_t transmitRegister = 0;
-uint8_t transmitBuffers[4][MAX_ETH_SIZE];
 
 bool RTL8139_SendPacket(NetPacket packet) {
     uint32_t currentStatus = i686_inl(ioaddr + TRANSMIT_STATUS_REG_OFFSET + transmitRegister);
@@ -127,9 +138,9 @@ bool RTL8139_SendPacket(NetPacket packet) {
         return false;
     }
 
-    memcpy(transmitBuffers[transmitRegister], packet.data, MAX_ETH_SIZE);
+    memcpy(transmitBuffers[transmitRegister/4] , packet.data, MAX_ETH_SIZE);
 
-    i686_outl(ioaddr + TRANSMIT_START_REG_OFFSET + transmitRegister, (uint32_t)(transmitBuffers[transmitRegister] - 0xc0000000));
+    i686_outl(ioaddr + TRANSMIT_START_REG_OFFSET + transmitRegister, (uint32_t)(transmitBuffersPhysical[transmitRegister/4]));
     i686_outl(ioaddr + TRANSMIT_STATUS_REG_OFFSET + transmitRegister, packet.length & 0x1fff);
 
     transmitRegister += TRANSMIT_REG_SIZE;

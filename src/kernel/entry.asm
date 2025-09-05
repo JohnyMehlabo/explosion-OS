@@ -9,6 +9,7 @@ stack_bottom:
     resb 16384 
 stack_top:
 
+global page_directory
 section .page_tables
     align 4096
 page_directory:
@@ -16,7 +17,7 @@ page_directory:
 page_tables:
     resb 0x10000
 
-BOOTSTRAP_MEM equ 0x100000
+BOOTSTRAP_MEM equ 0x300000
 
 section .entry
 ; EDI Current PTE offset
@@ -41,7 +42,6 @@ entry:
     jmp .loop
 
 .reached_end:
-    sub edi, page_tables - 0xC0000000 ; Mov to edi used pagetable size
     mov ebx, page_tables - 0xC0000000
     xor esi, esi
 
@@ -49,8 +49,8 @@ entry:
     mov ecx, ebx
     or ecx, 3
 
-    mov DWORD [page_directory - 0xC0000000 + esi], ecx
-    mov DWORD [page_directory - 0xC0000000 + 768 * 4 + esi], ecx
+    mov DWORD [page_directory - 0xC0000000 + esi * 4], ecx
+    mov DWORD [page_directory - 0xC0000000 + 768 * 4 + esi * 4], ecx
 
     inc esi
     add ebx, 0x1000
@@ -60,6 +60,9 @@ entry:
     jmp .directory_loop
 
 .finished_directory:
+    ; Store the amount of page tables mapped for later unmapping them from the lower half
+    mov ebx, esi
+
     mov edi, page_tables - 0xC0000000 + 160 * 4
     mov esi, 0xa0000
 
@@ -79,7 +82,10 @@ entry:
 
     mov edx, eax ; Copy boot info addr into edx for setting corresponding flags
     or edx, 3
-    mov DWORD [page_tables - 0xC0000000 + 64 * 4], edx
+    mov DWORD [page_tables - 0xc0000000 + 64 * 4], edx
+
+    ; Map the directory recursively
+    mov DWORD [page_directory - 0xc0000000 + 1023 * 4], page_directory - 0xc0000000 + 3
 
     mov ecx, page_directory - 0xC0000000
     mov cr3, ecx
@@ -97,9 +103,19 @@ higher_half:
     lea esp, [stack_top]
     mov ebp, esp
     
-   mov DWORD [page_directory - 0xC0000000 + 0], 0
+    xor esi, esi
+.unmap_loop:
+    ; TODO: Unmap the rest of the lower half
+    mov DWORD [page_directory - 0xC0000000 + esi * 4], 0
 
-    add eax, 0xC0000000 ; Add the virtual offset to the boot info struct
+    cmp esi, ebx
+    jge .finished_unmapping
+
+    inc esi
+    jmp .unmap_loop
+
+.finished_unmapping:
+    add eax, 0xc0000000 ; Add the virtual offset to the boot info struct
     push eax
     call kstart
 
